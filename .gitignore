@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+*.slides.md
+_*.html
+convert.py
+setup.sh
+package.json
+package-lock.json

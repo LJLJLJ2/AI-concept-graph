@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 概念图谱 · 每日一卡</title>
+<script src="https://cdn.jsdelivr.net/npm/vis-network@10.1.0/standalone/umd/vis-network.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0b1120; color: #e2e8f0; height: 100vh; display: flex; }
+button { cursor: pointer; font-family: inherit; }
+
+/* 左侧：图谱 */
+.graph-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.toolbar { display: flex; gap: 6px; padding: 10px 14px; background: #111b2e; border-bottom: 1px solid #1e293b; flex-wrap: wrap; align-items: center; }
+.toolbar .brand { font-size: .95em; font-weight: 700; background: linear-gradient(135deg, #667eea, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-right: 10px; }
+.module-btn { padding: 5px 12px; border-radius: 14px; border: 1px solid #334155; background: #1e293b; color: #94a3b8; font-size: .78em; transition: all .15s; white-space: nowrap; }
+.module-btn:hover { border-color: #667eea; color: #cbd5e1; }
+.module-btn.active { background: #667eea; border-color: #667eea; color: #fff; }
+.module-btn.done { border-color: #22c55e; }
+#graph-container { flex: 1; background: #0b1120; min-height: 400px; min-width: 300px; position: relative; }
+#graph-container canvas { display: block; }
+#load-error { display: none; padding: 40px; color: #ef4444; font-size: .9em; white-space: pre-wrap; }
+
+/* 右侧：卡片面板 */
+.card-panel { width: 380px; background: #111b2e; border-left: 1px solid #1e293b; display: flex; flex-direction: column; overflow-y: auto; }
+.card-header { padding: 18px 20px 12px; border-bottom: 1px solid #1e293b; }
+.card-header h2 { font-size: 1em; color: #f59e0b; margin-bottom: 4px; }
+.card-header .date-hint { font-size: .75em; color: #64748b; }
+
+.card-body { padding: 20px; flex: 1; }
+.concept-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: .72em; margin-bottom: 10px; }
+.badge-mod { background: #312e81; color: #a5b4fc; }
+.badge-lvl-basic { background: #14532d; color: #86efac; }
+.badge-lvl-mid { background: #713f12; color: #fde68a; }
+.badge-lvl-adv { background: #7f1d1d; color: #fca5a5; }
+
+.card-concept-name { font-size: 1.6em; font-weight: 700; margin-bottom: 14px; line-height: 1.3; }
+.card-definition { font-size: .92em; color: #cbd5e1; line-height: 1.7; margin-bottom: 16px; padding: 14px; background: #1e293b; border-radius: 10px; border-left: 3px solid #667eea; }
+.card-relations { font-size: .82em; color: #94a3b8; }
+.card-relations .rel-item { padding: 4px 0; }
+.card-relations .rel-type { color: #667eea; font-weight: 600; }
+
+.card-actions { display: flex; gap: 10px; padding: 16px 20px; border-top: 1px solid #1e293b; flex-wrap: wrap; }
+.btn-primary { padding: 9px 20px; border-radius: 8px; border: none; background: #667eea; color: #fff; font-size: .85em; font-weight: 600; transition: all .15s; }
+.btn-primary:hover { background: #7c3aed; }
+.btn-secondary { padding: 9px 20px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #cbd5e1; font-size: .85em; transition: all .15s; }
+.btn-secondary:hover { border-color: #667eea; }
+
+.stats-bar { display: flex; gap: 16px; padding: 10px 20px; border-top: 1px solid #1e293b; font-size: .75em; color: #64748b; }
+.stat-num { color: #f59e0b; font-weight: 700; font-size: 1.1em; }
+
+/* Tooltip */
+.tooltip-box { position: fixed; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 14px 18px; max-width: 280px; pointer-events: none; z-index: 100; font-size: .85em; box-shadow: 0 8px 24px rgba(0,0,0,.5); display: none; }
+.tooltip-box .tt-name { font-size: 1em; font-weight: 700; margin-bottom: 4px; }
+.tooltip-box .tt-mod { font-size: .72em; color: #667eea; margin-bottom: 8px; }
+.tooltip-box .tt-def { color: #cbd5e1; line-height: 1.5; font-size: .82em; }
+</style>
+</head>
+<body>
+
+<!-- 左侧：图谱 -->
+<div class="graph-panel">
+  <div class="toolbar">
+    <span class="brand">AI 概念图谱</span>
+    <button class="module-btn active" onclick="filterModule('all')">全部</button>
+    <button class="module-btn" onclick="filterModule(1)">模块一</button>
+    <button class="module-btn" onclick="filterModule(2)">模块二</button>
+    <button class="module-btn" onclick="filterModule(3)">模块三</button>
+    <button class="module-btn" onclick="filterModule(4)">模块四</button>
+    <button class="module-btn" onclick="filterModule(5)">模块五</button>
+    <button class="module-btn" onclick="filterModule(6)">模块六</button>
+    <button class="module-btn" onclick="filterModule(7)">模块七</button>
+    <button class="module-btn" onclick="filterModule(8)">模块八</button>
+    <button class="module-btn" onclick="filterModule(9)">模块九·十·十一·十二</button>
+  </div>
+  <div id="graph-container"></div>
+  <div id="load-error"></div>
+</div>
+
+<!-- 右侧：每日卡片 -->
+<div class="card-panel">
+  <div class="card-header">
+    <h2>📅 今日概念卡片</h2>
+    <div class="date-hint" id="dateHint"></div>
+  </div>
+  <div class="card-body" id="cardBody">
+    <div style="text-align:center;color:#64748b;padding:60px 0;">点击图谱中的节点<br>或点击下方按钮<br>查看每日概念卡片</div>
+  </div>
+  <div class="card-actions">
+    <button class="btn-primary" onclick="drawDailyCard()">🎲 随机一张卡片</button>
+    <button class="btn-secondary" id="btnLearned" onclick="markLearned()">✅ 我已掌握</button>
+    <button class="btn-secondary" onclick="showRandomUnseen()">🆕 学个新的</button>
+  </div>
+  <div class="stats-bar">
+    <span>已掌握：<span class="stat-num" id="statLearned">0</span></span>
+    <span>连续天数：<span class="stat-num" id="statStreak">0</span></span>
+    <span>总概念：<span class="stat-num">56</span></span>
+  </div>
+</div>
+
+<div class="tooltip-box" id="tooltip"></div>
+
+<script>
+// ==================== 概念数据 ====================
+const concepts = [
+  // 模块一：AI启蒙
+  { id: 1, label: "人工智能\n(AI)", module: 1, level: "basic", def: "计算机科学的一个分支，试图让机器完成那些如果由人来做会被认为需要'智能'的事情。当前AI的本质是超大规模的模式匹配，不是真正的思考。" },
+  { id: 2, label: "模式匹配", module: 1, level: "basic", def: "当前AI的底层运作方式——不是理解内容含义，而是在海量训练数据中学会'看到X应该输出Y'的统计规律。ChatGPT本质是一个超级模式匹配器。" },
+  { id: 3, label: "图灵测试", module: 1, level: "basic", def: "Alan Turing在1950年提出的AI评判标准：如果人类裁判通过文字对话无法区分对方是人还是机器，则机器通过测试。意义在于把'智能'从哲学问题变成了工程问题。" },
+  { id: 4, label: "ANI / AGI / ASI", module: 1, level: "basic", def: "AI的三级分类。ANI（弱AI）是当前所有AI的水平，只在一个领域内出色；AGI（通用AI）能完成任何人类智力任务，尚未实现；ASI（超AI）在所有方面远超人类，尚属科幻。" },
+  { id: 5, label: "AI ⊃ ML ⊃ DL ⊃ GenAI", module: 1, level: "basic", def: "AI四层嵌套关系。AI是最大圈，ML（机器学习）是AI子集，DL（深度学习）是ML子集，GenAI（生成式AI）是DL子集。不是并列关系，是逐层包含。" },
+  { id: 6, label: "中文房间\n思想实验", module: 1, level: "basic", def: "Searle在1980年提出的思想实验：房间里的人不懂中文但靠手册给出中文答案。质疑AI是否真正'理解'语言，击中LLM的本质——做符号处理而非有意识的理解。" },
+
+  // 模块二：机器学习基础
+  { id: 7, label: "机器学习\n(ML)", module: 2, level: "basic", def: "AI的核心子集，核心特征是从数据中自动学习规律，而非人工编写规则。Tom Mitchell定义：任务T的表现随经验E积累而提升（用指标P衡量）。" },
+  { id: 8, label: "特征\n(Feature)", module: 2, level: "basic", def: "用来描述数据对象的字段或属性。比如预测房价的特征包括面积、楼层、是否近地铁等。传统ML需要人工设计特征，深度学习可以自动提取特征。" },
+  { id: 9, label: "标签\n(Label)", module: 2, level: "basic", def: "模型要预测的目标答案。有标签的数据用于监督学习（有标准答案），无标签用于无监督学习（探索式）。标签质量决定模型表现的上限。" },
+  { id: 10, label: "监督学习", module: 2, level: "basic", def: "给模型带有标签的训练数据，让模型学会从输入映射到输出。就像有标准答案的练习题。典型任务：分类（判断垃圾邮件）和回归（预测房价）。" },
+  { id: 11, label: "无监督学习", module: 2, level: "basic", def: "训练数据没有标签，模型自己发现数据中的结构或模式。就像没有答案的探索题。典型任务：聚类（用户分群）和降维（数据可视化）。" },
+  { id: 12, label: "过拟合\n(Overfitting)", module: 2, level: "mid", def: "模型在训练数据上表现极好，但在新数据上表现很差——像学生只背了答案不理解原理。诊断：训练集准确率高、测试集准确率低。是ML中最常见的陷阱。" },
+  { id: 13, label: "交叉验证", module: 2, level: "mid", def: "把数据分成K份，轮流用K-1份训练、1份测试，取K次结果的平均。让模型评估更可靠，减少单次划分的偶然性。缺点是训练成本变为K倍。" },
+  { id: 14, label: "正则化", module: 2, level: "mid", def: "防止过拟合的技术手段。L1正则化让不重要的权重变零（特征选择），L2正则化让所有权重都不太大（防止过度依赖个别特征），Dropout随机丢弃神经元（深度学习专用）。" },
+
+  // 模块三：深度学习
+  { id: 15, label: "深度学习\n(DL)", module: 3, level: "mid", def: "ML的子集，使用多层神经网络从数据中自动逐层提取特征。与传统ML的关键区别：不需要人工设计特征，原始数据直接输入，模型自己学会'看什么'。" },
+  { id: 16, label: "感知机\n(Perceptron)", module: 3, level: "mid", def: "神经网络的最基本单元，1958年提出。对输入加权求和，如果结果大于阈值则输出1，否则输出0。本质上是一个线性分类器，只能解决线性可分问题，XOR问题就无能为力。" },
+  { id: 17, label: "激活函数", module: 3, level: "mid", def: "神经网络中引入非线性能力的关键。如果没有激活函数，多层网络退化为单层线性变换。常见的有ReLU（最常用）、Sigmoid（输出概率）、GELU（Transformer中用）。" },
+  { id: 18, label: "反向传播\n(Backprop)", module: 3, level: "mid", def: "训练神经网络的核心算法：先正向计算输出和损失，再反向从输出层逐层传回梯度，用梯度更新每个权重。链式法则使得计算高效，是深度学习能够训练深层网络的原因。" },
+  { id: 19, label: "CNN\n卷积神经网络", module: 3, level: "mid", def: "专为图像设计的架构。核心操作是卷积核在图像上滑动扫描，提取边缘→纹理→形状→物体这样的层级特征。池化层压缩信息、降低计算量。2012年AlexNet在ImageNet上一战成名。" },
+  { id: 20, label: "RNN / LSTM", module: 3, level: "mid", def: "处理序列数据的经典架构。RNN像人一句句读文章，靠隐藏状态记忆前文。LSTM通过遗忘门/输入门/输出门三个门控机制解决长序列的梯度消失问题。缺点是串行处理太慢。" },
+  { id: 21, label: "Transformer", module: 3, level: "adv", def: "2017年由Google提出的革命性架构。核心是自注意力机制——让每个词同时关注句子中的所有词，一举解决RNN的串行慢和长距离遗忘两大痛点。所有现代大模型的基石。" },
+
+  // 模块四：NLP
+  { id: 22, label: "NLP\n自然语言处理", module: 4, level: "mid", def: "AI最重要的应用领域之一，让计算机理解、生成人类语言。包含文本分类、命名实体识别(NER)、情感分析、机器翻译、文本摘要、问答系统等子任务。" },
+  { id: 23, label: "Word2Vec", module: 4, level: "mid", def: "2013年提出的词向量模型。核心思想：一个词的意思可以由它经常出现的上下文来决定。把每个词表示为一个稠密向量，语义相近的词在向量空间中距离也近（国王-男人+女人≈女王）。" },
+  { id: 24, label: "Token /\nEmbedding", module: 4, level: "mid", def: "Token是LLM处理文本的最小单位（不是字也不是词），中文约1-2个汉字=1个token。Embedding是把token映射为高维向量的过程，向量之间的空间关系代表了语义关系。" },
+  { id: 25, label: "自注意力机制\n(Self-Attention)", module: 4, level: "adv", def: "Transformer的核心。每个词计算与所有词（包括自己）的注意力权重——'我该多关注哪个词？'。比如'它'指代'苹果'时，通过注意力权重把两个词关联起来。并行计算，一次看完整个句子。" },
+
+  // 模块五：大语言模型
+  { id: 26, label: "LLM\n大语言模型", module: 5, level: "mid", def: "参数规模达到数十亿以上的语言模型，训练目标是预测下一个token。当模型和数据大到一定程度后涌现出推理、翻译、编程等能力。ChatGPT/GPT-4/Claude都属于LLM。" },
+  { id: 27, label: "GPT 架构", module: 5, level: "adv", def: "Generative Pre-trained Transformer。只用Transformer的解码器部分（单向，只能从左往右看），自回归生成（一个token一个token接着生成）。训练分两阶段：预训练（海量文本学语言）+ 对齐（学做人）。" },
+  { id: 28, label: "涌现能力\n(Emergence)", module: 5, level: "adv", def: "当模型规模超过某个阈值后，突然出现了训练目标之外的新能力（如推理、数学、代码）。这些能力没有被显式编程或训练，是'大'到一定程度后自然出现的。规模定律(Scaling Law)描述了这一现象。" },
+  { id: 29, label: "RLHF\n人类反馈强化学习", module: 5, level: "adv", def: "让LLM输出更符合人类偏好的对齐技术。三步：收集人类偏好数据→训练奖励模型(RM)→用PPO强化学习微调LLM。ChatGPT好用的一大原因就是经过了RLHF的训练。" },
+  { id: 30, label: "提示工程\n(Prompt Eng.)", module: 5, level: "mid", def: "通过精心设计输入文本（提示词）来控制LLM输出质量的技术。包括：角色设定、Few-shot示例、思维链(CoT)、结构化输出等。不是编程，而是'用自然语言给AI下达清晰指令'。" },
+  { id: 31, label: "思维链\n(Chain-of-Thought)", module: 5, level: "mid", def: "一种提示技术，在提示词中加入'让我们一步一步思考'之类的引导，让LLM展示中间推理步骤后再给出最终答案。显著提高了LLM在数学题、逻辑推理等复杂任务上的准确率。" },
+
+  // 模块六：Agent核心
+  { id: 32, label: "AI Agent\n智能体", module: 6, level: "mid", def: "能自主感知环境、做出决策、执行行动以达成目标的AI系统。与普通LLM的关键区别：Agent不是一问一答就结束，而是持续地观察→思考→行动→观察，在循环中自主完成任务。" },
+  { id: 33, label: "Agent 四大模块", module: 6, level: "mid", def: "Agent架构的四个核心组件：推理规划（大脑，用LLM做决策）、记忆系统（存储历史和知识）、工具使用（调用外部API和函数）、行动执行（把决策变成实际操作）。" },
+  { id: 34, label: "ReAct 框架", module: 6, level: "adv", def: "Reasoning + Acting。Agent的主流推理范式：Thought（思考下一步做什么）→ Action（执行工具调用）→ Observation（观察工具返回结果）→ 回到Thought继续循环，直到任务完成。" },
+  { id: 35, label: "工具调用\n(Function Call)", module: 6, level: "mid", def: "让LLM能够调用外部函数和API的能力。LLM不会真正'执行'代码，而是输出一个结构化JSON描述'我要调用哪个函数，参数是什么'，由外部系统真正执行后把结果返回给LLM。" },
+  { id: 36, label: "记忆系统\n(Memory)", module: 6, level: "mid", def: "Agent记忆的三种类型：短期记忆（当前对话上下文，窗口有限）、长期记忆（跨会话持久化存储，通常用向量数据库实现）、工作记忆（当前任务的结构化状态，如已完成步骤和待办事项）。" },
+
+  // 模块七：Agent高级
+  { id: 37, label: "多Agent协作", module: 7, level: "adv", def: "多个Agent各自承担不同角色（如产品经理Agent、开发Agent、测试Agent），通过通信和分工协作完成复杂任务。关键在于任务分解和Agent间信息传递协议。" },
+  { id: 38, label: "RAG\n检索增强生成", module: 7, level: "mid", def: "Retrieval-Augmented Generation。在LLM生成答案前，先从外部知识库检索相关文档，把检索结果作为上下文一起输入LLM。解决了LLM知识过期和幻觉问题，是实现'企业知识问答'的核心技术。" },
+  { id: 39, label: "向量数据库", module: 7, level: "mid", def: "存储和检索向量（Embedding）的专用数据库。RAG的关键组件：把文档转成向量存在向量库中，用户查询也转成向量，用相似度搜索找到最相关的文档。主流产品：Pinecone、Milvus、Chroma。" },
+  { id: 40, label: "AI 安全对齐", module: 7, level: "adv", def: "确保AI系统的目标和行为与人类价值观一致。包含：有用性（真的帮到人）、无害性（不说有害内容）、诚实性（不知为不知）。技术手段包括RLHF、红队测试、宪法AI等。" },
+
+  // 模块八：实战开发
+  { id: 41, label: "AI 应用架构", module: 8, level: "mid", def: "典型AI应用的分层架构：前端（用户交互+流式展示）→ 后端（业务逻辑+API路由）→ AI层（LLM调用+Prompt管理+RAG检索）→ 数据层（向量库+业务数据库）。" },
+  { id: 42, label: "模型部署", module: 8, level: "adv", def: "把训练好的模型变成可用的服务。关键决策：用API（最简单，按量付费）还是自部署（成本可控但需要运维）。涉及模型量化（减小体积）、推理加速（vLLM等框架）、监控告警等。" },
+  { id: 43, label: "流式输出\n(Streaming)", module: 8, level: "mid", def: "LLM逐个token实时返回输出而非一次性返回完整结果。极大改善用户体验（不必等待全部生成完）。技术上是HTTP SSE（Server-Sent Events）或WebSocket实现。" },
+
+  // 模块九：AI产品经理
+  { id: 44, label: "AI 产品设计", module: 9, level: "mid", def: "AI产品与传统软件的本质区别：传统软件是确定性系统（输入A→输出B永远一样），AI产品是概率系统（同样输入可能不同输出）。产品经理需要管理用户的'不确定性预期'。" },
+  { id: 45, label: "AI 伦理合规", module: 9, level: "mid", def: "AI产品上线前需要考虑的伦理和法律问题：数据隐私（训练数据是否有授权）、偏见与公平（模型是否对特定群体不公平）、透明度（用户是否知道自己在跟AI交互）、问责（AI出错谁来负责）。" },
+  { id: 46, label: "AI 能力边界", module: 9, level: "mid", def: "产品经理的核心认知：知道当前AI能做什么、不能做什么。AI擅长快速反应和模式匹配，不擅长因果推理、长程一致性、真正创造。产品设计不能超出技术能力边界。" },
+
+  // 模块十：AI训练师
+  { id: 47, label: "数据标注", module: 10, level: "basic", def: "为原始数据添加标签以供监督学习使用。是AI训练师的基础工作，但远非全部。标注质量直接决定模型表现上限——如果30%的猫被标成了狗，再好的模型也救不回来。" },
+  { id: 48, label: "偏好对齐", module: 10, level: "adv", def: "让模型输出符合人类偏好的训练过程。收集人类对多个模型输出的排名数据（A比B好），用来训练奖励模型，再通过RLHF或DPO让LLM学会产出'人类更喜欢'的内容。" },
+  { id: 49, label: "模型评估", module: 10, level: "mid", def: "系统性地衡量模型能力。分为：自动评估（用标准测试集打分，如MMLU、HumanEval）和人工评估（人类评审员对输出质量打分）。两者缺一不可，自动评估快但可能和真实体验有差异。" },
+
+  // 模块十一：AI应用工程师
+  { id: 50, label: "全栈 AI 技术栈", module: 11, level: "mid", def: "AI应用工程师需要掌握的技术组合：Python + LLM API调用（OpenAI/Anthropic SDK）+ Prompt工程 + RAG框架（LangChain/LlamaIndex）+ 向量数据库 + 前端基础（Streamlit/Gradio做原型）。" },
+  { id: 51, label: "LangChain /\nLlamaIndex", module: 11, level: "mid", def: "两个主流的LLM应用开发框架。LangChain提供链式调用、Agent编排、工具集成等抽象；LlamaIndex专注于数据索引和RAG场景。都帮你省去大量样板代码。" },
+  { id: 52, label: "RAG 系统搭建", module: 11, level: "adv", def: "从零搭建RAG系统的步骤：文档加载→文本切分（Chunking策略是关键）→向量化（选Embedding模型）→存入向量库→用户查询向量化→相似度检索→拼接上下文→LLM生成答案。每一步都有工程决策。" },
+
+  // 模块十二：职业发展
+  { id: 53, label: "AI PM\n产品经理路径", module: 12, level: "mid", def: "需掌握：AI能力边界认知 + 产品方法论 + 数据驱动决策 + AI伦理合规。核心竞争力在于知道AI'能做什么'和'不能做什么'，设计出技术上可行、用户真正需要的AI产品。" },
+  { id: 54, label: "AI 训练师路径", module: 12, level: "mid", def: "需掌握：数据标注管理 + 模型评估方法论 + 领域知识 + 偏好对齐技术。核心价值在于通过高质量数据和评估标准，把'能用'的模型变成'好用'的模型。" },
+  { id: 55, label: "AI 工程师路径", module: 12, level: "mid", def: "需掌握：Python + LLM SDK + RAG/Agent框架 + 模型部署 + 工程最佳实践。核心竞争力在于把论文里的AI能力高效地工程化落地为可用的产品功能。" },
+  { id: 56, label: "AI 未来趋势", module: 12, level: "basic", def: "当前AI行业的核心趋势：多模态（文本+图像+视频统一处理）、Agent化（从对话到自主执行任务）、端侧AI（模型跑在手机/电脑上）、AI4S（AI驱动科学研究）。" },
+];
+
+// 关系数据
+const relations = [
+  // AI层级关系
+  { from: 7, to: 1, label: "是…的子集" },       // ML ⊂ AI
+  { from: 15, to: 7, label: "是…的子集" },      // DL ⊂ ML
+  { from: 21, to: 15, label: "属于" },           // Transformer ∈ DL
+  { from: 26, to: 21, label: "基于" },           // LLM 基于 Transformer
+  { from: 27, to: 26, label: "是…的实现" },      // GPT 是 LLM 的实现
+  // 模块一内部
+  { from: 2, to: 1, label: "本质" },
+  { from: 3, to: 1, label: "经典测试" },
+  { from: 4, to: 1, label: "发展阶段" },
+  { from: 5, to: 1, label: "概念关系" },
+  { from: 6, to: 2, label: "质疑" },
+  // 模块二内部
+  { from: 10, to: 7, label: "属于" },
+  { from: 11, to: 7, label: "属于" },
+  { from: 8, to: 10, label: "输入" },
+  { from: 9, to: 10, label: "目标输出" },
+  { from: 12, to: 7, label: "核心陷阱" },
+  { from: 13, to: 12, label: "检测手段" },
+  { from: 14, to: 12, label: "预防手段" },
+  // 模块二→三
+  { from: 15, to: 8, label: "自动提取" },         // DL 自动提取特征
+  { from: 16, to: 15, label: "基本单元" },
+  { from: 18, to: 15, label: "核心训练算法" },
+  { from: 17, to: 15, label: "核心组件" },
+  { from: 19, to: 15, label: "属于" },
+  { from: 20, to: 15, label: "属于" },
+  { from: 21, to: 20, label: "取代了" },
+  // 模块四内部
+  { from: 22, to: 21, label: "重要应用" },
+  { from: 23, to: 22, label: "里程碑技术" },
+  { from: 24, to: 26, label: "基本单位" },
+  { from: 25, to: 21, label: "核心机制" },
+  { from: 25, to: 24, label: "计算上下文" },
+  // 模块五内部
+  { from: 27, to: 21, label: "基于" },
+  { from: 28, to: 26, label: "关键现象" },
+  { from: 29, to: 26, label: "对齐技术" },
+  { from: 30, to: 26, label: "交互方式" },
+  { from: 31, to: 30, label: "高级技巧" },
+  { from: 28, to: 29, label: "使…成为可能" },
+  // 模块六
+  { from: 32, to: 26, label: "以…为大脑" },
+  { from: 33, to: 32, label: "架构" },
+  { from: 34, to: 33, label: "推理核心" },
+  { from: 35, to: 33, label: "工具模块" },
+  { from: 36, to: 33, label: "记忆模块" },
+  // 模块七
+  { from: 37, to: 32, label: "扩展" },
+  { from: 38, to: 32, label: "增强" },
+  { from: 38, to: 39, label: "依赖" },
+  { from: 40, to: 32, label: "约束" },
+  { from: 40, to: 29, label: "技术延续" },
+  // 模块八
+  { from: 41, to: 38, label: "包含" },
+  { from: 41, to: 35, label: "包含" },
+  { from: 42, to: 41, label: "落地环节" },
+  { from: 43, to: 41, label: "体验优化" },
+  // 模块九-十二
+  { from: 44, to: 46, label: "依赖" },
+  { from: 45, to: 44, label: "约束" },
+  { from: 46, to: 2, label: "回溯到" },
+  { from: 47, to: 10, label: "支撑" },
+  { from: 48, to: 29, label: "替代方案" },
+  { from: 49, to: 47, label: "评估" },
+  { from: 38, to: 52, label: "工程实现" },
+  { from: 50, to: 52, label: "包含" },
+  { from: 51, to: 50, label: "核心框架" },
+  { from: 51, to: 38, label: "支持" },
+  { from: 53, to: 44, label: "职业方向" },
+  { from: 54, to: 47, label: "职业方向" },
+  { from: 55, to: 50, label: "职业方向" },
+  { from: 56, to: 1, label: "展望" },
+];
+
+// ==================== 图谱 ====================
+const moduleColors = {
+  1: { bg: '#312e81', border: '#6366f1', text: '#c7d2fe' },
+  2: { bg: '#1e3a5f', border: '#3b82f6', text: '#bfdbfe' },
+  3: { bg: '#14532d', border: '#22c55e', text: '#bbf7d0' },
+  4: { bg: '#713f12', border: '#f59e0b', text: '#fde68a' },
+  5: { bg: '#7f1d1d', border: '#ef4444', text: '#fecaca' },
+  6: { bg: '#4a1d6b', border: '#a855f7', text: '#e9d5ff' },
+  7: { bg: '#164e63', border: '#06b6d4', text: '#a5f3fc' },
+  8: { bg: '#4c1d95', border: '#8b5cf6', text: '#ddd6fe' },
+  9: { bg: '#3b0764', border: '#d946ef', text: '#f0abfc' },
+  10: { bg: '#1a2e05', border: '#84cc16', text: '#d9f99d' },
+  11: { bg: '#431407', border: '#f97316', text: '#fed7aa' },
+  12: { bg: '#0f172a', border: '#94a3b8', text: '#cbd5e1' },
+};
+
+// ==================== 图谱初始化（带错误捕获） ====================
+function initGraph() {
+  const container = document.getElementById('graph-container');
+  const errDiv = document.getElementById('load-error');
+
+  if (typeof vis === 'undefined') {
+    errDiv.style.display = 'block';
+    errDiv.textContent = '错误：vis-network 库未加载。请检查 node_modules/vis-network 是否存在。';
+    return false;
+  }
+
+  try {
+    const nodesDS = new vis.DataSet(concepts.map(c => {
+      const mc = moduleColors[c.module] || moduleColors[12];
+      return {
+        id: c.id,
+        label: c.label,
+        title: `<b>${c.label.replace('\n',' ')}</b><br><small>${c.def.slice(0,80)}…</small>`,
+        color: { background: mc.bg, border: mc.border, highlight: { background: mc.border, border: mc.bg } },
+        font: { color: mc.text, size: 12, face: '-apple-system,BlinkMacSystemFont,sans-serif' },
+        shape: 'box',
+        margin: 8,
+        borderWidth: 2,
+        size: 20,
+        module: c.module,
+      };
+    }));
+
+    const edgesDS = new vis.DataSet(relations.map((r, i) => ({
+      id: i + 1,
+      from: r.from, to: r.to, label: r.label,
+      arrows: 'to',
+      color: { color: '#475569', highlight: '#667eea' },
+      font: { color: '#64748b', size: 10, strokeWidth: 0, align: 'middle' },
+      smooth: { type: 'curvedCW', roundness: 0.2 },
+      width: 1,
+    })));
+
+    window._nodes = nodesDS;
+    window._edges = edgesDS;
+
+    const net = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, {
+      physics: { solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005, springLength: 120, springConstant: 0.08 } },
+      interaction: { hover: true, tooltipDelay: 100, zoomView: true, dragView: true },
+      layout: { improvedLayout: true },
+      edges: { smooth: { type: 'curvedCW', roundness: 0.2 } },
+    });
+
+    net.on('click', function(params) {
+      if (params.nodes.length > 0) showConceptCard(params.nodes[0]);
+    });
+
+    net.on('hoverNode', function(params) {
+      const c = concepts.find(x => x.id === params.node);
+      if (!c) return;
+      const tt = document.getElementById('tooltip');
+      tt.innerHTML = `<div class="tt-name">${c.label.replace('\n',' ')}</div><div class="tt-mod">模块${c.module} · ${c.level==='basic'?'基础':c.level==='mid'?'进阶':'高级'}</div><div class="tt-def">${c.def.slice(0,120)}…</div>`;
+      tt.style.display = 'block';
+      tt.style.left = (params.event.clientX + 16) + 'px';
+      tt.style.top = (params.event.clientY - 10) + 'px';
+    });
+    net.on('blurNode', function() {
+      document.getElementById('tooltip').style.display = 'none';
+    });
+
+    window._network = net;
+    return true;
+  } catch (e) {
+    errDiv.style.display = 'block';
+    errDiv.textContent = '错误：' + e.message + '\n\n' + (e.stack || '');
+    return false;
+  }
+}
+
+const graphReady = initGraph();
+
+// ==================== 模块过滤 ====================
+function filterModule(mod) {
+  if (!graphReady || !window._nodes || !window._edges || !window._network) return;
+  const nodesDS = window._nodes;
+  const edgesDS = window._edges;
+  const net = window._network;
+
+  const btns = document.querySelectorAll('.module-btn');
+  btns.forEach(b => b.classList.remove('active'));
+  const btnIndex = mod === 'all' ? 0 : (mod >= 9 ? 9 : mod);
+  if (btns[btnIndex]) btns[btnIndex].classList.add('active');
+
+  nodesDS.forEach(n => {
+    let visible = true;
+    if (mod === 'all') { visible = true; }
+    else if (mod >= 9) { visible = n.module >= 9; }
+    else { visible = n.module === mod; }
+    nodesDS.update({ id: n.id, hidden: !visible });
+  });
+
+  const visSet = new Set(nodesDS.get({ filter: n => !n.hidden }).map(n => n.id));
+  edgesDS.forEach(e => {
+    edgesDS.update({ id: e.id, hidden: !visSet.has(e.from) || !visSet.has(e.to) });
+  });
+
+  net.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+}
+
+// ==================== 每日卡片 ====================
+const STORAGE_KEY_SEEN = 'ai_concepts_seen';
+const STORAGE_KEY_LEARNED = 'ai_concepts_learned';
+const STORAGE_KEY_DATE = 'ai_concept_last_date';
+const STORAGE_KEY_STREAK = 'ai_concept_streak';
+
+function getSeenIds() { return JSON.parse(localStorage.getItem(STORAGE_KEY_SEEN) || '[]'); }
+function getLearnedIds() { return JSON.parse(localStorage.getItem(STORAGE_KEY_LEARNED) || '[]'); }
+function addSeenId(id) { const s = getSeenIds(); if (!s.includes(id)) { s.push(id); localStorage.setItem(STORAGE_KEY_SEEN, JSON.stringify(s)); } }
+function toggleLearnedId(id) { const s = getLearnedIds(); const idx = s.indexOf(id); if (idx >= 0) { s.splice(idx, 1); } else { s.push(id); } localStorage.setItem(STORAGE_KEY_LEARNED, JSON.stringify(s)); return !s.includes(id); }
+
+function updateStreak() {
+  const today = new Date().toISOString().slice(0, 10);
+  const last = localStorage.getItem(STORAGE_KEY_DATE);
+  let streak = parseInt(localStorage.getItem(STORAGE_KEY_STREAK) || '0');
+  if (last !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (last === yesterday) { streak += 1; } else { streak = 1; }
+    localStorage.setItem(STORAGE_KEY_DATE, today);
+    localStorage.setItem(STORAGE_KEY_STREAK, streak.toString());
+  }
+  return streak;
+}
+
+function updateStats() {
+  document.getElementById('statLearned').textContent = getLearnedIds().length;
+  document.getElementById('statStreak').textContent = updateStreak();
+}
+
+let currentConceptId = null;
+
+function showConceptCard(id) {
+  const c = concepts.find(x => x.id === id);
+  if (!c) return;
+  currentConceptId = id;
+  addSeenId(id);
+
+  const rels = relations.filter(r => r.from === id || r.to === id);
+  const levelLabel = c.level === 'basic' ? '基础' : c.level === 'mid' ? '进阶' : '高级';
+  const levelCls = c.level === 'basic' ? 'badge-lvl-basic' : c.level === 'mid' ? 'badge-lvl-mid' : 'badge-lvl-adv';
+
+  const relItems = rels.map(r => {
+    const otherId = r.from === id ? r.to : r.from;
+    const other = concepts.find(x => x.id === otherId);
+    const dir = r.from === id ? '→' : '←';
+    return `<div class="rel-item"><span class="rel-type">${dir} ${r.label}</span> ${other ? other.label.replace('\n',' ') : '?'}</div>`;
+  }).join('');
+
+  const isLearned = getLearnedIds().includes(id);
+
+  document.getElementById('cardBody').innerHTML = `
+    <span class="concept-badge badge-mod">模块${c.module}</span>
+    <span class="concept-badge ${levelCls}">${levelLabel}</span>
+    <div class="card-concept-name">${c.label.replace('\n',' ')}</div>
+    <div class="card-definition">${c.def}</div>
+    ${relItems ? '<div class="card-relations"><strong>关系：</strong>' + relItems + '</div>' : ''}
+  `;
+  document.getElementById('btnLearned').textContent = isLearned ? '🔄 取消掌握' : '✅ 我已掌握';
+  document.getElementById('btnLearned').style.background = isLearned ? '#22c55e' : '';
+  document.getElementById('btnLearned').style.color = isLearned ? '#000' : '';
+
+  // Highlight node in graph
+  if (window._network) window._network.selectNodes([id]);
+  updateStats();
+}
+
+function drawDailyCard() {
+  const seen = getSeenIds();
+  const pool = concepts.filter(c => seen.length < concepts.length ? !seen.includes(c.id) : true);
+  const pick = pool[Math.floor(Math.random() * pool.length)] || concepts[Math.floor(Math.random() * concepts.length)];
+  showConceptCard(pick.id);
+}
+
+function showRandomUnseen() {
+  const seen = getSeenIds();
+  const unseen = concepts.filter(c => !seen.includes(c.id));
+  const pick = unseen.length > 0 ? unseen[Math.floor(Math.random() * unseen.length)] : concepts[Math.floor(Math.random() * concepts.length)];
+  showConceptCard(pick.id);
+}
+
+function markLearned() {
+  if (!currentConceptId) return;
+  const nowLearned = toggleLearnedId(currentConceptId);
+  document.getElementById('btnLearned').textContent = nowLearned ? '✅ 我已掌握' : '🔄 取消掌握';
+  document.getElementById('btnLearned').style.background = nowLearned ? '' : '#22c55e';
+  document.getElementById('btnLearned').style.color = nowLearned ? '' : '#000';
+
+  // Update module button visual
+  const c = concepts.find(x => x.id === currentConceptId);
+  const modLearned = new Set(concepts.filter(x => getLearnedIds().includes(x.id)).map(x => x.module));
+  document.querySelectorAll('.module-btn').forEach(b => {
+    const m = parseInt(b.textContent.replace(/[^0-9]/g, ''));
+    if (modLearned.has(m)) b.classList.add('done');
+    else b.classList.remove('done');
+  });
+
+  updateStats();
+}
+
+// ==================== 初始化 ====================
+document.getElementById('dateHint').textContent = new Date().toLocaleDateString('zh-CN', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
+updateStats();
+
+// 首次加载或新的一天自动抽一张
+const today = new Date().toISOString().slice(0,10);
+const lastDate = localStorage.getItem(STORAGE_KEY_DATE);
+if (lastDate !== today) {
+  updateStreak();
+  setTimeout(() => drawDailyCard(), 600);
+} else {
+  // 显示上次看过的最后一张
+  const seen = getSeenIds();
+  if (seen.length > 0) {
+    setTimeout(() => showConceptCard(seen[seen.length - 1]), 400);
+  }
+}
+
+// 标记已学模块的按钮
+const learnedIds = getLearnedIds();
+const modLearned = new Set(concepts.filter(c => learnedIds.includes(c.id)).map(c => c.module));
+document.querySelectorAll('.module-btn').forEach(b => {
+  const m = parseInt(b.textContent.replace(/[^0-9]/g, ''));
+  if (modLearned.has(m)) b.classList.add('done');
+});
+</script>
+</body>
+</html>
