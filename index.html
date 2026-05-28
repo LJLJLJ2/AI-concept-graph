@@ -139,8 +139,8 @@ const concepts = [
 
   // 模块五：大语言模型
   { id: 26, label: "LLM\n大语言模型", module: 5, level: "mid", def: "参数规模达到数十亿以上的语言模型，训练目标是预测下一个token。当模型和数据大到一定程度后涌现出推理、翻译、编程等能力。ChatGPT/GPT-4/Claude都属于LLM。" },
-  { id: 27, label: "GPT 架构", module: 5, level: "adv", def: "Generative Pre-trained Transformer。只用Transformer的解码器部分（单向，只能从左往右看），自回归生成（一个token一个token接着生成）。训练分两阶段：预训练（海量文本学语言）+ 对齐（学做人）。" },
-  { id: 28, label: "涌现能力\n(Emergence)", module: 5, level: "adv", def: "当模型规模超过某个阈值后，突然出现了训练目标之外的新能力（如推理、数学、代码）。这些能力没有被显式编程或训练，是'大'到一定程度后自然出现的。规模定律(Scaling Law)描述了这一现象。" },
+  { id: 27, label: "GPT 架构", module: 5, level: "adv", def: "Generative Pre-trained Transformer。只用Transformer的解码器部分（单向，只能从左往右看），自回归生成（一个token一个token接着生成）。训练分三阶段：预训练（海量文本学语言）→ 监督微调SFT（学指令遵循）→ RLHF（学人类偏好对齐）。" },
+  { id: 28, label: "涌现能力\n(Emergence)", module: 5, level: "adv", def: "当模型规模超过某个阈值后，突然出现了训练目标之外的新能力（如推理、数学、代码）。这些能力没有被显式编程或训练。规模定律(Scaling Law)预测了模型性能随规模增长的趋势，但涌现能力的根本原因仍在研究中——有学者认为这可能是评估指标不连续造成的假象。" },
   { id: 29, label: "RLHF\n人类反馈强化学习", module: 5, level: "adv", def: "让LLM输出更符合人类偏好的对齐技术。三步：收集人类偏好数据→训练奖励模型(RM)→用PPO强化学习微调LLM。ChatGPT好用的一大原因就是经过了RLHF的训练。" },
   { id: 30, label: "提示工程\n(Prompt Eng.)", module: 5, level: "mid", def: "通过精心设计输入文本（提示词）来控制LLM输出质量的技术。包括：角色设定、Few-shot示例、思维链(CoT)、结构化输出等。不是编程，而是'用自然语言给AI下达清晰指令'。" },
   { id: 31, label: "思维链\n(Chain-of-Thought)", module: 5, level: "mid", def: "一种提示技术，在提示词中加入'让我们一步一步思考'之类的引导，让LLM展示中间推理步骤后再给出最终答案。显著提高了LLM在数学题、逻辑推理等复杂任务上的准确率。" },
@@ -154,7 +154,7 @@ const concepts = [
 
   // 模块七：Agent高级
   { id: 37, label: "多Agent协作", module: 7, level: "adv", def: "多个Agent各自承担不同角色（如产品经理Agent、开发Agent、测试Agent），通过通信和分工协作完成复杂任务。关键在于任务分解和Agent间信息传递协议。" },
-  { id: 38, label: "RAG\n检索增强生成", module: 7, level: "mid", def: "Retrieval-Augmented Generation。在LLM生成答案前，先从外部知识库检索相关文档，把检索结果作为上下文一起输入LLM。解决了LLM知识过期和幻觉问题，是实现'企业知识问答'的核心技术。" },
+  { id: 38, label: "RAG\n检索增强生成", module: 7, level: "mid", def: "Retrieval-Augmented Generation。在LLM生成答案前，先从外部知识库检索相关文档，把检索结果作为上下文一起输入LLM。有效缓解知识过期问题、显著减少幻觉——让输出有据可依。是实现'企业知识问答'的核心技术。" },
   { id: 39, label: "向量数据库", module: 7, level: "mid", def: "存储和检索向量（Embedding）的专用数据库。RAG的关键组件：把文档转成向量存在向量库中，用户查询也转成向量，用相似度搜索找到最相关的文档。主流产品：Pinecone、Milvus、Chroma。" },
   { id: 40, label: "AI 安全对齐", module: 7, level: "adv", def: "确保AI系统的目标和行为与人类价值观一致。包含：有用性（真的帮到人）、无害性（不说有害内容）、诚实性（不知为不知）。技术手段包括RLHF、红队测试、宪法AI等。" },
 
@@ -216,8 +216,9 @@ const relations = [
   { from: 20, to: 15, label: "属于" },
   { from: 21, to: 20, label: "取代了" },
   // 模块四内部
-  { from: 22, to: 21, label: "重要应用" },
+  { from: 21, to: 22, label: "革命性技术" },
   { from: 23, to: 22, label: "里程碑技术" },
+  { from: 24, to: 23, label: "源于" },
   { from: 24, to: 26, label: "基本单位" },
   { from: 25, to: 21, label: "核心机制" },
   { from: 25, to: 24, label: "计算上下文" },
@@ -227,19 +228,22 @@ const relations = [
   { from: 29, to: 26, label: "对齐技术" },
   { from: 30, to: 26, label: "交互方式" },
   { from: 31, to: 30, label: "高级技巧" },
-  { from: 28, to: 29, label: "使…成为可能" },
+  { from: 28, to: 29, label: "协同发展" },
+  { from: 31, to: 28, label: "具体表现" },
   // 模块六
   { from: 32, to: 26, label: "以…为大脑" },
   { from: 33, to: 32, label: "架构" },
   { from: 34, to: 33, label: "推理核心" },
+  { from: 32, to: 34, label: "核心框架" },
   { from: 35, to: 33, label: "工具模块" },
   { from: 36, to: 33, label: "记忆模块" },
   // 模块七
   { from: 37, to: 32, label: "扩展" },
   { from: 38, to: 32, label: "增强" },
   { from: 38, to: 39, label: "依赖" },
+  { from: 38, to: 24, label: "依赖" },
   { from: 40, to: 32, label: "约束" },
-  { from: 40, to: 29, label: "技术延续" },
+  { from: 29, to: 40, label: "实现手段" },
   // 模块八
   { from: 41, to: 38, label: "包含" },
   { from: 41, to: 35, label: "包含" },
@@ -248,16 +252,19 @@ const relations = [
   // 模块九-十二
   { from: 44, to: 46, label: "依赖" },
   { from: 45, to: 44, label: "约束" },
-  { from: 46, to: 2, label: "回溯到" },
+  { from: 46, to: 2, label: "本质源于" },
   { from: 47, to: 10, label: "支撑" },
-  { from: 48, to: 29, label: "替代方案" },
-  { from: 49, to: 47, label: "评估" },
-  { from: 38, to: 52, label: "工程实现" },
+  { from: 48, to: 29, label: "包含" },
+  { from: 49, to: 47, label: "依赖标注数据" },
+  { from: 52, to: 38, label: "工程实现" },
+  { from: 52, to: 39, label: "依赖" },
   { from: 50, to: 52, label: "包含" },
   { from: 51, to: 50, label: "核心框架" },
   { from: 51, to: 38, label: "支持" },
   { from: 53, to: 44, label: "职业方向" },
   { from: 54, to: 47, label: "职业方向" },
+  { from: 54, to: 49, label: "职业方向" },
+  { from: 54, to: 48, label: "职业方向" },
   { from: 55, to: 50, label: "职业方向" },
   { from: 56, to: 1, label: "展望" },
 ];
