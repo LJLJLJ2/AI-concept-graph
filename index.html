@@ -299,6 +299,35 @@ const relations = [
   { from: 56, to: 1, label: "展望" },
 ];
 
+// ==================== 每日卡片 ====================
+const STORAGE_KEY_SEEN = 'ai_concepts_seen';
+const STORAGE_KEY_LEARNED = 'ai_concepts_learned';
+const STORAGE_KEY_DATE = 'ai_concept_last_date';
+const STORAGE_KEY_STREAK = 'ai_concept_streak';
+
+function getSeenIds() { return JSON.parse(localStorage.getItem(STORAGE_KEY_SEEN) || '[]'); }
+function getLearnedIds() { return JSON.parse(localStorage.getItem(STORAGE_KEY_LEARNED) || '[]'); }
+function addSeenId(id) { const s = getSeenIds(); if (!s.includes(id)) { s.push(id); localStorage.setItem(STORAGE_KEY_SEEN, JSON.stringify(s)); } }
+function toggleLearnedId(id) { const s = getLearnedIds(); const idx = s.indexOf(id); if (idx >= 0) { s.splice(idx, 1); } else { s.push(id); } localStorage.setItem(STORAGE_KEY_LEARNED, JSON.stringify(s)); return !s.includes(id); }
+
+function updateStreak() {
+  const today = new Date().toISOString().slice(0, 10);
+  const last = localStorage.getItem(STORAGE_KEY_DATE);
+  let streak = parseInt(localStorage.getItem(STORAGE_KEY_STREAK) || '0');
+  if (last !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (last === yesterday) { streak += 1; } else { streak = 1; }
+    localStorage.setItem(STORAGE_KEY_DATE, today);
+    localStorage.setItem(STORAGE_KEY_STREAK, streak.toString());
+  }
+  return streak;
+}
+
+function updateStats() {
+  document.getElementById('statLearned').textContent = getLearnedIds().length;
+  document.getElementById('statStreak').textContent = updateStreak();
+}
+
 // ==================== 图谱 ====================
 const GRAY_NODE = { bg: '#1e293b', border: '#475569', text: '#64748b' };
 const GREEN_NODE = { bg: '#14532d', border: '#22c55e', text: '#bbf7d0' };
@@ -428,34 +457,6 @@ function filterModule(mod) {
   net.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
 }
 
-// ==================== 每日卡片 ====================
-const STORAGE_KEY_SEEN = 'ai_concepts_seen';
-const STORAGE_KEY_LEARNED = 'ai_concepts_learned';
-const STORAGE_KEY_DATE = 'ai_concept_last_date';
-const STORAGE_KEY_STREAK = 'ai_concept_streak';
-
-function getSeenIds() { return JSON.parse(localStorage.getItem(STORAGE_KEY_SEEN) || '[]'); }
-function getLearnedIds() { return JSON.parse(localStorage.getItem(STORAGE_KEY_LEARNED) || '[]'); }
-function addSeenId(id) { const s = getSeenIds(); if (!s.includes(id)) { s.push(id); localStorage.setItem(STORAGE_KEY_SEEN, JSON.stringify(s)); } }
-function toggleLearnedId(id) { const s = getLearnedIds(); const idx = s.indexOf(id); if (idx >= 0) { s.splice(idx, 1); } else { s.push(id); } localStorage.setItem(STORAGE_KEY_LEARNED, JSON.stringify(s)); return !s.includes(id); }
-
-function updateStreak() {
-  const today = new Date().toISOString().slice(0, 10);
-  const last = localStorage.getItem(STORAGE_KEY_DATE);
-  let streak = parseInt(localStorage.getItem(STORAGE_KEY_STREAK) || '0');
-  if (last !== today) {
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-    if (last === yesterday) { streak += 1; } else { streak = 1; }
-    localStorage.setItem(STORAGE_KEY_DATE, today);
-    localStorage.setItem(STORAGE_KEY_STREAK, streak.toString());
-  }
-  return streak;
-}
-
-function updateStats() {
-  document.getElementById('statLearned').textContent = getLearnedIds().length;
-  document.getElementById('statStreak').textContent = updateStreak();
-}
 
 let currentConceptId = null;
 
