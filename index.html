@@ -304,6 +304,7 @@ const STORAGE_KEY_SEEN = 'ai_concepts_seen';
 const STORAGE_KEY_LEARNED = 'ai_concepts_learned';
 const STORAGE_KEY_DATE = 'ai_concept_last_date';
 const STORAGE_KEY_STREAK = 'ai_concept_streak';
+const STORAGE_KEY_POSITIONS = 'ai_concept_positions';
 
 function getSeenIds() { return JSON.parse(localStorage.getItem(STORAGE_KEY_SEEN) || '[]'); }
 function getLearnedIds() { return JSON.parse(localStorage.getItem(STORAGE_KEY_LEARNED) || '[]'); }
@@ -359,10 +360,12 @@ function initGraph() {
 
   try {
     const learnedIds = getLearnedIds();
+    const savedPositions = JSON.parse(localStorage.getItem(STORAGE_KEY_POSITIONS) || 'null');
     const nodesDS = new vis.DataSet(concepts.map(c => {
       const mc = moduleColors[c.module] || moduleColors[12];
       const learned = learnedIds.includes(c.id);
       const col = learned ? GREEN_NODE : GRAY_NODE;
+      const pos = savedPositions ? savedPositions[c.id] : null;
       return {
         id: c.id,
         label: c.label,
@@ -374,6 +377,8 @@ function initGraph() {
         borderWidth: 2,
         size: 20,
         module: c.module,
+        x: pos ? pos.x : undefined,
+        y: pos ? pos.y : undefined,
       };
     }));
 
@@ -390,10 +395,15 @@ function initGraph() {
     window._nodes = nodesDS;
     window._edges = edgesDS;
 
+    const hasSavedPositions = savedPositions !== null;
     const net = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, {
-      physics: { solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005, springLength: 120, springConstant: 0.08 } },
+      physics: { 
+        solver: 'forceAtlas2Based', 
+        forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005, springLength: 120, springConstant: 0.08 },
+        stabilization: hasSavedPositions ? { iterations: 10 } : { iterations: 200 }
+      },
       interaction: { hover: true, tooltipDelay: 100, zoomView: true, dragView: true },
-      layout: { improvedLayout: true },
+      layout: { improvedLayout: !hasSavedPositions },
       edges: { smooth: { type: 'curvedCW', roundness: 0.2 } },
     });
 
@@ -412,6 +422,26 @@ function initGraph() {
     });
     net.on('blurNode', function() {
       document.getElementById('tooltip').style.display = 'none';
+    });
+
+    // Save positions after layout stabilizes
+    net.on('stabilizationIterationsDone', function() {
+      const positions = {};
+      const allPos = net.getPositions();
+      for (const [id, pos] of Object.entries(allPos)) {
+        positions[id] = { x: pos.x, y: pos.y };
+      }
+      localStorage.setItem(STORAGE_KEY_POSITIONS, JSON.stringify(positions));
+    });
+
+    // Save positions when user drags nodes
+    net.on('dragEnd', function() {
+      const positions = JSON.parse(localStorage.getItem(STORAGE_KEY_POSITIONS) || '{}');
+      const allPos = net.getPositions();
+      for (const [id, pos] of Object.entries(allPos)) {
+        positions[id] = { x: pos.x, y: pos.y };
+      }
+      localStorage.setItem(STORAGE_KEY_POSITIONS, JSON.stringify(positions));
     });
 
     window._network = net;
