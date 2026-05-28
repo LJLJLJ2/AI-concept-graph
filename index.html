@@ -300,6 +300,8 @@ const relations = [
 ];
 
 // ==================== 图谱 ====================
+const GRAY_NODE = { bg: '#1e293b', border: '#475569', text: '#64748b' };
+const GREEN_NODE = { bg: '#14532d', border: '#22c55e', text: '#bbf7d0' };
 const moduleColors = {
   1: { bg: '#312e81', border: '#6366f1', text: '#c7d2fe' },
   2: { bg: '#1e3a5f', border: '#3b82f6', text: '#bfdbfe' },
@@ -327,14 +329,17 @@ function initGraph() {
   }
 
   try {
+    const learnedIds = getLearnedIds();
     const nodesDS = new vis.DataSet(concepts.map(c => {
       const mc = moduleColors[c.module] || moduleColors[12];
+      const learned = learnedIds.includes(c.id);
+      const col = learned ? GREEN_NODE : GRAY_NODE;
       return {
         id: c.id,
         label: c.label,
         title: `<b>${c.label.replace('\n',' ')}</b><br><small>${c.def.slice(0,80)}…</small>`,
-        color: { background: mc.bg, border: mc.border, highlight: { background: mc.border, border: mc.bg } },
-        font: { color: mc.text, size: 12, face: '-apple-system,BlinkMacSystemFont,sans-serif' },
+        color: { background: col.bg, border: col.border, highlight: { background: col.border, border: col.bg } },
+        font: { color: col.text, size: 12, face: '-apple-system,BlinkMacSystemFont,sans-serif' },
         shape: 'box',
         margin: 8,
         borderWidth: 2,
@@ -537,6 +542,22 @@ function markLearned() {
 
   updateStats();
   updateModuleProgress();
+  refreshNodeColors();
+}
+
+// ==================== 刷新节点颜色 ====================
+function refreshNodeColors() {
+  if (!window._nodes) return;
+  const learnedIds = getLearnedIds();
+  window._nodes.forEach(n => {
+    const learned = learnedIds.includes(n.id);
+    const col = learned ? GREEN_NODE : GRAY_NODE;
+    window._nodes.update({
+      id: n.id,
+      color: { background: col.bg, border: col.border, highlight: { background: col.border, border: col.bg } },
+      font: { color: col.text, size: 12, face: '-apple-system,BlinkMacSystemFont,sans-serif' }
+    });
+  });
 }
 
 // ==================== 初始化 ====================
